@@ -56,6 +56,27 @@
         document.getElementById('reloadBtn').onclick = () => {
             window.parent.postMessage({ command: 'reload' }, '*');
         };
+
+        // Listen for messages from the extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'showFiles') {
+                // Hide loader
+                document.getElementById('loader').style.display = 'none';
+                // Show files table
+                document.getElementById('files').innerHTML = message.html;
+                // Add click handler to table rows
+                const table = document.getElementById('filesTable');
+                if (table) {
+                    table.addEventListener('click', function(e) {
+                        const td = e.target.closest('td[data-fname]');
+                        if (td) {
+                            window.parent.postMessage({ command: 'openFile', filename: td.getAttribute('data-fname') }, '*');
+                        }
+                    });
+                }
+            }
+        });
     </script>
 </body>
 </html>
