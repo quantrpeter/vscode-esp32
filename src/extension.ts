@@ -30,50 +30,12 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		);
 
-		// Show loading animation initially
-		panel.webview.html = `
-			<html>
-			<head>
-				<style>
-					body { font-family: sans-serif; padding: 16px; }
-					.toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
-					.toolbar button { padding: 6px 16px; font-size: 1em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: #f3f3f3; }
-					.toolbar button:hover { background: #e0e0e0; }
-					.loader { display: flex; justify-content: center; align-items: center; height: 80px; }
-				</style>
-			</head>
-			<body>
-				<div class="toolbar">
-					<button id="uploadBtn">Upload</button>
-					<button id="renameBtn">Rename</button>
-					<button id="deleteBtn">Delete</button>
-				</div>
-				<h2>MicroPython Files</h2>
-				<div class="loader">
-					<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-						<circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/>
-						<circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round">
-							<animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/>
-						</circle>
-					</svg>
-				</div>
-				<script>
-					document.getElementById('uploadBtn').onclick = () => {
-						window.parent.postMessage({ command: 'upload' }, '*');
-						alert('Upload button clicked!');
-					};
-					document.getElementById('renameBtn').onclick = () => {
-						window.parent.postMessage({ command: 'rename' }, '*');
-						alert('Rename button clicked!');
-					};
-					document.getElementById('deleteBtn').onclick = () => {
-						window.parent.postMessage({ command: 'delete' }, '*');
-						alert('Delete button clicked!');
-					};
-				</script>
-			</body>
-			</html>
-		`;
+		// Load external HTML file
+		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'src', 'panel.html'));
+		const htmlUri = panel.webview.asWebviewUri(htmlPath);
+		const fs = require('fs');
+		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
+		panel.webview.html = htmlContent;
 
 		// Run mpremote ls :
 		let fileList: string = '';
@@ -117,44 +79,47 @@ export function activate(context: vscode.ExtensionContext) {
 			}).join('');
 		}
 
-		// Update panel with file list
-		panel.webview.html = `
-			<html>
-			<head>
-				<style>
-					body { font-family: sans-serif; padding: 16px; }
-					.toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
-					.toolbar button { padding: 6px 16px; font-size: 1em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: #f3f3f3; }
-					.toolbar button:hover { background: #e0e0e0; }
-				</style>
-			</head>
-			<body>
-				<div class="toolbar">
-					<button id="uploadBtn">Upload</button>
-					<button id="renameBtn">Rename</button>
-					<button id="deleteBtn">Delete</button>
-				</div>
-				<h2>MicroPython Files</h2>
-				${filesHtml || '<p>No files found or error occurred.</p>'}
-				<script>
-					document.getElementById('uploadBtn').onclick = () => {
-						window.parent.postMessage({ command: 'upload' }, '*');
-						alert('Upload button clicked!');
-					};
-					document.getElementById('renameBtn').onclick = () => {
-						window.parent.postMessage({ command: 'rename' }, '*');
-						alert('Rename button clicked!');
-					};
-					document.getElementById('deleteBtn').onclick = () => {
-						window.parent.postMessage({ command: 'delete' }, '*');
-						alert('Delete button clicked!');
-					};
-				</script>
-			</body>
-			</html>
-		`;
+		// Send file list to webview after loading
+		panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
+
+		// Handle messages from webview
+		panel.webview.onDidReceiveMessage(async message => {
+			if (message.command === 'reload') {
+				// Show loader again
+				panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+				// Re-run mpremote ls :
+				let fileList: string = '';
+				try {
+					const exec = require('child_process').exec;
+					fileList = await new Promise<string>((resolve, reject) => {
+						exec('mpremote ls :', (error: any, stdout: string, stderr: string) => {
+							if (error) {
+								reject(stderr);
+							} else {
+								resolve(stdout);
+							}
+						});
+					});
+				} catch (err) {
+					fileList = 'Error running mpremote: ' + err;
+				}
+				let filesHtml = '';
+				if (fileList && typeof fileList === 'string') {
+					const lines = fileList.split('\n').filter(l => l.trim());
+					filesHtml = lines.map(line => {
+						const fname = line.trim();
+						return `<div style="display:flex;align-items:center;margin-bottom:4px;"><span style="font-size:1.2em;margin-right:8px;">${getIcon(fname)}</span><span>${fname}</span></div>`;
+					}).join('');
+				}
+				panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
+			}
+			// Handle upload, rename, delete here
+		});
 	});
 	context.subscriptions.push(panelDisposable);
+
+	// Automatically open the MicroPython Files panel when the extension is activated
+	vscode.commands.executeCommand('micropython.openFilesPanel');
 }
 
 // This method is called when your extension is deactivated
