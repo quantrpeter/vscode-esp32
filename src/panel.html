@@ -38,34 +38,61 @@
 			align-items: center;
 			height: 80px;
 		}
+
+		/* Add a custom modal for confirmation */
+		#confirmModal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			background: rgba(0, 0, 0, 0.3);
+			z-index: 1000;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#confirmModal>div {
+			background: #fff;
+			padding: 24px;
+			border-radius: 8px;
+			min-width: 300px;
+			box-shadow: 0 2px 8px #0002;
+			text-align: center;
+		}
 	</style>
 </head>
 
 <body>
 	<div class="toolbar">
 		<button id="uploadBtn">Upload</button>
-		<button id="renameBtn">Rename</button>
-		<button id="deleteBtn">Delete</button>
+		<button id="deleteBtn"">Delete</button>
 		<button id="reloadBtn">Reload</button>
 	</div>
 	<h2>Files on device</h2>
 	<div id="loader" class="loader">
 	</div>
 	<div id="files"></div>
+
+	<!-- Add a custom modal for confirmation -->
+	<div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:1000;justify-content:center;align-items:center;">
+		<div style="background:#fff;padding:24px;border-radius:8px;min-width:300px;box-shadow:0 2px 8px #0002;text-align:center;">
+			<div id="confirmMessage" style="margin-bottom:16px;">Are you sure?</div>
+			<button id="confirmYesBtn" style="margin-right:16px;">Yes</button>
+			<button id="confirmNoBtn">No</button>
+		</div>
+	</div>
+
 	<script>
-		const vscode = window.acquireVsCodeApi(); 
+		const vscode = window.acquireVsCodeApi();
 
 		document.getElementById('uploadBtn').onclick = () => {
 			vscode.postMessage({ command: 'upload' });
 			alert('Upload button clicked!');
 		};
-		document.getElementById('renameBtn').onclick = () => {
-			vscode.postMessage({ command: 'rename' });
-			alert('Rename button clicked!');
-		};
 		document.getElementById('deleteBtn').onclick = () => {
-			vscode.postMessage({ command: 'delete' });
-			alert('Delete button clicked!');
+			deleteFiles();
 		};
 		document.getElementById('reloadBtn').onclick = () => {
 			console.log('reload 1');
@@ -74,7 +101,6 @@
 
 		// Listen for messages from the extension
 		window.addEventListener('message', event => {
-			console.log('panel.html received ', event.data);
 			const message = event.data;
 			if (message.command === 'showFiles') {
 				// Hide loader
@@ -91,8 +117,78 @@
 						}
 					});
 				}
+			} else if (message.command === 'setImageUri' && message.uri) {
+				// // Remove any existing image/link
+				// const oldLink = document.getElementById('hkps-link');
+				// if (oldLink) oldLink.remove();
+				// // Create new link and image
+				// const link = document.createElement('a');
+				// link.id = 'hkps-link';
+				// link.href = 'https://www.hkprog.org';
+				// link.target = '_blank';
+				// link.rel = 'noopener';
+				// const img = document.createElement('img');
+				// img.id = 'hkps-img';
+				// img.src = message.uri;
+				// img.alt = 'HKPS Eng Big Blue';
+				// img.style.position = 'fixed';
+				// img.style.bottom = '24px';
+				// img.style.right = '24px';
+				// img.style.width = '96px';
+				// img.style.height = 'auto';
+				// img.style.zIndex = '2000';
+				// img.style.boxShadow = '0 2px 8px #0002';
+				// img.style.borderRadius = '8px';
+				// link.appendChild(img);
+				// document.body.appendChild(link);
+
+				document.body.insertAdjacentHTML('beforeend',
+					`<a id="hkps-link" href="https://www.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
+						<img id="hkps-img" src="${message.uri}" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
+					</a>`
+				);
 			}
 		});
+
+		function tableClicked(filename) {
+			console.log('Table row clicked:', filename);
+			vscode.postMessage({ command: 'openFile', filename });
+		}
+
+		function deleteFiles() {
+			const selectedFiles = Array.from(document.querySelectorAll('#filesTable input[type="checkbox"]:checked'))
+				.map(checkbox => checkbox.getAttribute('data-fname'));
+			if (selectedFiles.length === 0) {
+				showConfirm('No files selected for deletion.', null, null);
+				return;
+			}
+			showConfirm(
+				`Are you sure you want to delete the following files?\n\n${selectedFiles.join('\n')}`,
+				() => vscode.postMessage({ command: 'deleteFile', files: selectedFiles }),
+				() => {}
+			);
+		}
+
+		// Show custom confirmation modal
+		function showConfirm(message, onYes, onNo) {
+			document.getElementById('confirmMessage').textContent = message;
+			document.getElementById('confirmModal').style.display = 'flex';
+			const yesBtn = document.getElementById('confirmYesBtn');
+			const noBtn = document.getElementById('confirmNoBtn');
+			yesBtn.onclick = () => {
+				document.getElementById('confirmModal').style.display = 'none';
+				if (onYes) onYes();
+			};
+			noBtn.onclick = () => {
+				document.getElementById('confirmModal').style.display = 'none';
+				if (onNo) onNo();
+			};
+		}
+
+		// Add this to your panel.html script section
+		function runFile(fname) {
+			vscode.postMessage({ command: 'runFile', filename: fname });
+		}
 	</script>
 </body>
 

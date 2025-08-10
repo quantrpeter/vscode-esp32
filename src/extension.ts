@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	// Register command to open the MicroPython Files panel
-	const { mpremoteCat, mpremoteLs } = require('./esp32');
+	const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun } = require('./esp32');
 	const panelDisposable = vscode.commands.registerCommand('micropython.openFilesPanel', async () => {
 		function showLoading() {
 			panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
@@ -39,6 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
 		const fs = require('fs');
 		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 		panel.webview.html = htmlContent;
+
+		const imgPath = require('path').join(context.extensionPath, 'src', 'hkps eng big blue.png');
+		const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
+		panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
 
 		async function showFilesPanel() {
 			showLoading();
@@ -73,7 +77,15 @@ export function activate(context: vscode.ExtensionContext) {
 					if (match) {
 						const size = match[1];
 						const fname = match[2];
-						return `<tr onclick="vscode.postMessage({ command: 'tableClicked', filename: '${fname}' })" data-filename="${fname}" style="cursor:pointer;"><td style="text-align:right;padding-right:12px;">${size}</td><td style="padding-left:8px;">${getIcon(fname)} ${fname}</td></tr>`;
+						return `<tr data-filename="${fname}" style="cursor:pointer;" onclick="tableClicked('${fname}')">
+							<td style="text-align:center;"><input type="checkbox" data-fname="${fname}" /></td>
+							<td style="text-align:right;padding-right:12px;">${size}</td>
+							<td style="padding-left:8px;">${getIcon(fname)} ${fname}</td>
+							<td style="text-align:center;">
+								<button class="del-btn" data-fname="${fname}">Rename</button>
+								<button class="run-btn" data-fname="${fname}" onclick="runFile('${fname}')">Run</button>
+							</td>
+						</tr>`;
 					}
 					return '';
 				}).join('');
@@ -81,8 +93,10 @@ export function activate(context: vscode.ExtensionContext) {
 					<table id="filesTable" style="width:100%;border-collapse:collapse;">
 						<thead>
 							<tr>
-								<th style="text-align:left;padding-left:8px;">Name</th>
+								<th style="text-align:center;width:32px;"></th>
 								<th style="text-align:right;padding-right:12px;">Size</th>
+								<th style="text-align:left;padding-left:8px;">Name</th>
+								<th style="text-align:center;">Actions</th>
 							</tr>
 						</thead>
 						<tbody>${rows}</tbody>
@@ -101,9 +115,28 @@ export function activate(context: vscode.ExtensionContext) {
 			if (message.command === 'reload') {
 				await showFilesPanel();
 			}
-			if (message.command === 'tableClicked' && message.filename) {
+			if (message.command === 'openFile' && message.filename) {
 				console.log('Table row clicked:', message.filename);
-				tableClicked(message.filename);
+				openFile(message.filename);
+			}
+			if (message.command == 'deleteFile') {
+				const { files } = message;
+				if (Array.isArray(files) && files.length > 0) {
+					for (const file of files) {
+						console.log('Deleting file:', file);
+						await mpremoteRm(file);
+					}
+					await showFilesPanel();
+				}
+			}
+			if (message.command === 'runFile' && message.filename) {
+				console.log('Running file:', message.filename);
+				try {
+					const output = await mpremoteRun(message.filename);
+					vscode.window.showInformationMessage(`Run output for ${message.filename}:\n${output}`);
+				} catch (err) {
+					vscode.window.showErrorMessage(`Error running ${message.filename}: ${err}`);
+				}
 			}
 			// Handle upload, rename, delete here
 		});
@@ -113,7 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Automatically open the MicroPython Files panel when the extension is activated
 	vscode.commands.executeCommand('micropython.openFilesPanel');
 
-	async function tableClicked(filename: string) {
+	async function openFile(filename: string) {
 		console.log('Row clicked:', filename);
 		// call mpremoteCat
 		let fileContent = await mpremoteCat(filename);

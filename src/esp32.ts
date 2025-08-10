@@ -32,3 +32,38 @@ export async function mpremoteLs(): Promise<string> {
         });
     });
 }
+
+/**
+ * Removes a file from ESP32 using mpremote.
+ * @param filename The name of the file to remove from ESP32.
+ * @returns Promise<string> The command output.
+ */
+export async function mpremoteRm(filename: string): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        exec(`mpremote rm :${filename}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
+    });
+}
+
+/**
+ * Runs a file on ESP32 using mpremote.
+ * @param filename The name of the file to run on ESP32.
+ * @returns Promise<string> The command output.
+ */
+export async function mpremoteRun(filename: string): Promise<string> {
+    return await new Promise((resolve, reject) => {
+		console.log(`mpremote run :${filename}`);
+        exec(`mpremote run :${filename}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
+    });
+}
