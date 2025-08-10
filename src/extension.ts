@@ -19,10 +19,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	// Register command to open the MicroPython Files panel
+	const { mpremoteCat, mpremoteLs } = require('./esp32');
 	const panelDisposable = vscode.commands.registerCommand('micropython.openFilesPanel', async () => {
-		// Helper to show loading spinner in webview
 		function showLoading() {
-			panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+			panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
 		}
 		const panel = vscode.window.createWebviewPanel(
 			'micropythonFiles',
@@ -34,32 +34,21 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		);
 
-		// Load external HTML file
 		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'src', 'panel.html'));
 		const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		const fs = require('fs');
 		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 		panel.webview.html = htmlContent;
 
-		// Helper to run mpremote ls and send results to webview
-		async function mpremoteLs() {
+		async function showFilesPanel() {
+			showLoading();
 			let fileList: string = '';
 			try {
-				const exec = require('child_process').exec;
-				fileList = await new Promise<string>((resolve, reject) => {
-					exec('/Users/peter/.pyenv/shims/mpremote ls :', (error: any, stdout: string, stderr: string) => {
-						if (error) {
-							reject(stderr);
-						} else {
-							console.log(stdout);
-							resolve(stdout);
-						}
-					});
-				});
+				fileList = await mpremoteLs();
 			} catch (err) {
 				fileList = 'Error running mpremote: ' + err;
 			}
-			console.log('fileList', fileList);
+			// console.log('fileList', fileList);
 
 			function getIcon(filename: string): string {
 				const ext = filename.split('.').pop()?.toLowerCase();
@@ -80,30 +69,41 @@ export function activate(context: vscode.ExtensionContext) {
 			if (fileList && typeof fileList === 'string') {
 				const lines = fileList.split('\n').filter(l => l.trim());
 				const rows = lines.map(line => {
-					// Example line: "         139 boot.py"
 					const match = line.trim().match(/^(\d+)\s+(.*)$/);
 					if (match) {
 						const size = match[1];
 						const fname = match[2];
-						return `<tr><td style="text-align:right;padding-right:12px;">${size}</td><td style="padding-left:8px;">${getIcon(fname)} ${fname}</td></tr>`;
+						return `<tr onclick="vscode.postMessage({ command: 'tableClicked', filename: '${fname}' })" data-filename="${fname}" style="cursor:pointer;"><td style="text-align:right;padding-right:12px;">${size}</td><td style="padding-left:8px;">${getIcon(fname)} ${fname}</td></tr>`;
 					}
 					return '';
 				}).join('');
-				filesHtml = `<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:right;padding-right:12px;">Size</th><th style="text-align:left;padding-left:8px;">Name</th></tr></thead><tbody>${rows}</tbody></table>`;
+				filesHtml = `
+					<table id="filesTable" style="width:100%;border-collapse:collapse;">
+						<thead>
+							<tr>
+								<th style="text-align:left;padding-left:8px;">Name</th>
+								<th style="text-align:right;padding-right:12px;">Size</th>
+							</tr>
+						</thead>
+						<tbody>${rows}</tbody>
+					</table>
+				`;
 			}
 
-			console.log('filesHtml', filesHtml);
 			panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
 		}
 
 		// Initial load
-		await mpremoteLs();
+		await showFilesPanel();
 
-		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(async message => {
+			console.log('Message received from webview:', message);
 			if (message.command === 'reload') {
-				showLoading();
-				await mpremoteLs();
+				await showFilesPanel();
+			}
+			if (message.command === 'tableClicked' && message.filename) {
+				console.log('Table row clicked:', message.filename);
+				tableClicked(message.filename);
 			}
 			// Handle upload, rename, delete here
 		});
@@ -112,7 +112,35 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Automatically open the MicroPython Files panel when the extension is activated
 	vscode.commands.executeCommand('micropython.openFilesPanel');
+
+	async function tableClicked(filename: string) {
+		console.log('Row clicked:', filename);
+		// call mpremoteCat
+		let fileContent = await mpremoteCat(filename);
+		console.log('fileContent:', fileContent);
+		// Determine language mode from extension
+		const ext = filename.split('.').pop()?.toLowerCase();
+		let language: string | undefined;
+		switch (ext) {
+			case 'py': language = 'python'; break;
+			case 'txt': language = 'plaintext'; break;
+			case 'json': language = 'json'; break;
+			default: language = undefined;
+		}
+		// Use custom untitled URI to show filename in tab
+		const uri = vscode.Uri.parse(`untitled:${filename}`);
+		vscode.workspace.openTextDocument(uri).then(doc => {
+			vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One }).then(editor => {
+				editor.edit(editBuilder => {
+					editBuilder.insert(new vscode.Position(0, 0), fileContent);
+				});
+				if (language) {
+					vscode.languages.setTextDocumentLanguage(doc, language);
+				}
+			});
+		});
+	}
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }

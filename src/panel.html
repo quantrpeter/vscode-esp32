@@ -1,76 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MicroPython Device Files</title>
-    <style>
-        body { font-family: sans-serif; padding: 16px; }
-        .toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
-        .toolbar button {
-            padding: 6px 16px;
-            font-size: 1em;
-            cursor: pointer;
-            border-radius: 4px;
-            border: 1px solid var(--vscode-button-border, #ccc);
-            background: var(--vscode-button-background, #f3f3f3);
-            color: var(--vscode-button-foreground, inherit);
-            transition: background 0.2s;
-        }
-        .toolbar button:hover {
-            background: var(--vscode-button-hoverBackground, #e0e0e0);
-        }
-        .loader { display: flex; justify-content: center; align-items: center; height: 80px; }
-    </style>
-</head>
-<body>
-    <div class="toolbar">
-        <button id="uploadBtn">Upload</button>
-        <button id="renameBtn">Rename</button>
-        <button id="deleteBtn">Delete</button>
-        <button id="reloadBtn">Reload</button>
-    </div>
-    <h2>Files on device</h2>
-    <div id="loader" class="loader">
-    </div>
-    <div id="files"></div>
-    <script>
-        document.getElementById('uploadBtn').onclick = () => {
-            window.parent.postMessage({ command: 'upload' }, '*');
-            alert('Upload button clicked!');
-        };
-        document.getElementById('renameBtn').onclick = () => {
-            window.parent.postMessage({ command: 'rename' }, '*');
-            alert('Rename button clicked!');
-        };
-        document.getElementById('deleteBtn').onclick = () => {
-            window.parent.postMessage({ command: 'delete' }, '*');
-            alert('Delete button clicked!');
-        };
-        document.getElementById('reloadBtn').onclick = () => {
-            window.parent.postMessage({ command: 'reload' }, '*');
-        };
 
-        // Listen for messages from the extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            if (message.command === 'showFiles') {
-                // Hide loader
-                document.getElementById('loader').style.display = 'none';
-                // Show files table
-                document.getElementById('files').innerHTML = message.html;
-                // Add click handler to table rows
-                const table = document.getElementById('filesTable');
-                if (table) {
-                    table.addEventListener('click', function(e) {
-                        const td = e.target.closest('td[data-fname]');
-                        if (td) {
-                            window.parent.postMessage({ command: 'openFile', filename: td.getAttribute('data-fname') }, '*');
-                        }
-                    });
-                }
-            }
-        });
-    </script>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>MicroPython Device Files</title>
+	<style>
+		body {
+			font-family: sans-serif;
+			padding: 16px;
+		}
+
+		.toolbar {
+			display: flex;
+			gap: 10px;
+			margin-bottom: 16px;
+		}
+
+		.toolbar button {
+			padding: 6px 16px;
+			font-size: 1em;
+			cursor: pointer;
+			border-radius: 4px;
+			border: 1px solid var(--vscode-button-border, #ccc);
+			background: var(--vscode-button-background, #f3f3f3);
+			color: var(--vscode-button-foreground, inherit);
+			transition: background 0.2s;
+		}
+
+		.toolbar button:hover {
+			background: var(--vscode-button-hoverBackground, #e0e0e0);
+		}
+
+		.loader {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 80px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="toolbar">
+		<button id="uploadBtn">Upload</button>
+		<button id="renameBtn">Rename</button>
+		<button id="deleteBtn">Delete</button>
+		<button id="reloadBtn">Reload</button>
+	</div>
+	<h2>Files on device</h2>
+	<div id="loader" class="loader">
+	</div>
+	<div id="files"></div>
+	<script>
+		const vscode = window.acquireVsCodeApi(); 
+
+		document.getElementById('uploadBtn').onclick = () => {
+			vscode.postMessage({ command: 'upload' });
+			alert('Upload button clicked!');
+		};
+		document.getElementById('renameBtn').onclick = () => {
+			vscode.postMessage({ command: 'rename' });
+			alert('Rename button clicked!');
+		};
+		document.getElementById('deleteBtn').onclick = () => {
+			vscode.postMessage({ command: 'delete' });
+			alert('Delete button clicked!');
+		};
+		document.getElementById('reloadBtn').onclick = () => {
+			console.log('reload 1');
+			vscode.postMessage({ command: 'reload' });
+		};
+
+		// Listen for messages from the extension
+		window.addEventListener('message', event => {
+			console.log('panel.html received ', event.data);
+			const message = event.data;
+			if (message.command === 'showFiles') {
+				// Hide loader
+				document.getElementById('loader').style.display = 'none';
+				// Show files table
+				document.getElementById('files').innerHTML = message.html;
+				// Add click handler to table rows
+				const table = document.getElementById('filesTable');
+				if (table) {
+					table.addEventListener('click', function (e) {
+						const td = e.target.closest('td[data-fname]');
+						if (td) {
+							window.parent.postMessage({ command: 'openFile', filename: td.getAttribute('data-fname') }, '*');
+						}
+					});
+				}
+			}
+		});
+	</script>
 </body>
+
 </html>
