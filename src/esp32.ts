@@ -57,8 +57,27 @@ export async function mpremoteRm(filename: string): Promise<string> {
  */
 export async function mpremoteRun(filename: string): Promise<string> {
     return await new Promise((resolve, reject) => {
-		console.log(`mpremote run :${filename}`);
-        exec(`mpremote run :${filename}`, (error, stdout, stderr) => {
+        console.log(`mpremote run ${filename}`);
+        exec(`mpremote run ${filename}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
+    });
+}
+
+/**
+ * Copies a file from local to ESP32 using mpremote cp.
+ * @param localPath The local file path to copy.
+ * @returns Promise<string> The command output.
+ */
+export async function mpremoteCp(localPath: string, filename: string = ""): Promise<string> {
+    // const path = require('path');
+    // const filename = path.basename(localPath);
+    return await new Promise((resolve, reject) => {
+        exec(`mpremote cp ${localPath} :`, (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {

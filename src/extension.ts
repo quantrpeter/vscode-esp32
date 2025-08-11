@@ -5,26 +5,55 @@ import * as vscode from 'vscode';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	let panel;
+
+	// Register ESP32: Run command
+	const runDisposable = vscode.commands.registerCommand('esp32.run', async (fileUri: vscode.Uri) => {
+		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
+			vscode.window.showErrorMessage('ESP32: Run can only be used on .py files.');
+			return;
+		}
+		const { mpremoteRun } = require('./esp32');
+		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Running ${fileUri.fsPath} on ESP32...` }, async () => {
+			try {
+				const output = await mpremoteRun(fileUri.fsPath);
+				vscode.window.showInformationMessage(`Run output for ${fileUri.fsPath}:\n${output}`);
+				// reload
+
+			} catch (err) {
+				vscode.window.showErrorMessage(`Run failed: ${err}`);
+			}
+		});
+	});
+	context.subscriptions.push(runDisposable);
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "micropython" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('micropython.helloWorld', () => {
-		vscode.window.showInformationMessage('Hello World from MicroPython!');
-	});
-	context.subscriptions.push(disposable);
-
 	// Register command to open the MicroPython Files panel
-	const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun } = require('./esp32');
-	const panelDisposable = vscode.commands.registerCommand('micropython.openFilesPanel', async () => {
-		function showLoading() {
-			panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+	const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp } = require('./esp32');
+
+	// Register ESP32: Upload command
+	const uploadDisposable = vscode.commands.registerCommand('esp32.upload', async (fileUri: vscode.Uri) => {
+		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
+			vscode.window.showErrorMessage('ESP32: Upload can only be used on .py files.');
+			return;
 		}
-		const panel = vscode.window.createWebviewPanel(
+		const { mpremoteCp } = require('./esp32');
+		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${fileUri.fsPath} to ESP32...` }, async () => {
+			try {
+				await mpremoteCp(fileUri.fsPath);
+				showFilesPanel();
+				vscode.window.showInformationMessage(`Uploaded ${fileUri.fsPath} to ESP32.`);
+			} catch (err) {
+				vscode.window.showErrorMessage(`Upload failed: ${err}`);
+			}
+		});
+	});
+	context.subscriptions.push(uploadDisposable);
+	const panelDisposable = vscode.commands.registerCommand('micropython.openFilesPanel', async () => {
+		panel = vscode.window.createWebviewPanel(
 			'micropythonFiles',
 			'MicroPython Files',
 			vscode.ViewColumn.Two,
@@ -43,69 +72,6 @@ export function activate(context: vscode.ExtensionContext) {
 		const imgPath = require('path').join(context.extensionPath, 'src', 'hkps eng big blue.png');
 		const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
 		panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
-
-		async function showFilesPanel() {
-			showLoading();
-			let fileList: string = '';
-			try {
-				fileList = await mpremoteLs();
-			} catch (err) {
-				fileList = 'Error running mpremote: ' + err;
-			}
-			// console.log('fileList', fileList);
-
-			function getIcon(filename: string): string {
-				const ext = filename.split('.').pop()?.toLowerCase();
-				switch (ext) {
-					case 'py': return '🐍';
-					case 'txt': return '📄';
-					case 'jpg':
-					case 'jpeg':
-					case 'png': return '🖼️';
-					case 'mp3': return '🎵';
-					case 'json': return '🗂️';
-					case 'bin': return '💾';
-					default: return '📁';
-				}
-			}
-
-			let filesHtml = '';
-			if (fileList && typeof fileList === 'string') {
-				const lines = fileList.split('\n').filter(l => l.trim());
-				const rows = lines.map(line => {
-					const match = line.trim().match(/^(\d+)\s+(.*)$/);
-					if (match) {
-						const size = match[1];
-						const fname = match[2];
-						return `<tr data-filename="${fname}" style="cursor:pointer;" onclick="tableClicked('${fname}')">
-							<td style="text-align:center;"><input type="checkbox" data-fname="${fname}" /></td>
-							<td style="text-align:right;padding-right:12px;">${size}</td>
-							<td style="padding-left:8px;">${getIcon(fname)} ${fname}</td>
-							<td style="text-align:center;">
-								<button class="del-btn" data-fname="${fname}">Rename</button>
-								<button class="run-btn" data-fname="${fname}" onclick="runFile('${fname}')">Run</button>
-							</td>
-						</tr>`;
-					}
-					return '';
-				}).join('');
-				filesHtml = `
-					<table id="filesTable" style="width:100%;border-collapse:collapse;">
-						<thead>
-							<tr>
-								<th style="text-align:center;width:32px;"></th>
-								<th style="text-align:right;padding-right:12px;">Size</th>
-								<th style="text-align:left;padding-left:8px;">Name</th>
-								<th style="text-align:center;">Actions</th>
-							</tr>
-						</thead>
-						<tbody>${rows}</tbody>
-					</table>
-				`;
-			}
-
-			panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
-		}
 
 		// Initial load
 		await showFilesPanel();
@@ -145,6 +111,73 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Automatically open the MicroPython Files panel when the extension is activated
 	vscode.commands.executeCommand('micropython.openFilesPanel');
+
+	function showLoading() {
+		panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+	}
+
+	async function showFilesPanel() {
+		showLoading();
+		let fileList: string = '';
+		try {
+			fileList = await mpremoteLs();
+		} catch (err) {
+			fileList = 'Error running mpremote: ' + err;
+		}
+		// console.log('fileList', fileList);
+
+		function getIcon(filename: string): string {
+			const ext = filename.split('.').pop()?.toLowerCase();
+			switch (ext) {
+				case 'py': return '🐍';
+				case 'txt': return '📄';
+				case 'jpg':
+				case 'jpeg':
+				case 'png': return '🖼️';
+				case 'mp3': return '🎵';
+				case 'json': return '🗂️';
+				case 'bin': return '💾';
+				default: return '📁';
+			}
+		}
+
+		let filesHtml = '';
+		if (fileList && typeof fileList === 'string') {
+			const lines = fileList.split('\n').filter(l => l.trim());
+			const rows = lines.map(line => {
+				const match = line.trim().match(/^(\d+)\s+(.*)$/);
+				if (match) {
+					const size = match[1];
+					const fname = match[2];
+					return `<tr data-filename="${fname}" style="cursor:pointer;" onclick="tableClicked('${fname}')">
+							<td style="text-align:center;"><input type="checkbox" data-fname="${fname}" /></td>
+							<td style="text-align:right;padding-right:12px;">${size}</td>
+							<td style="padding-left:8px;">${getIcon(fname)} ${fname}</td>
+							<td style="text-align:center;">
+								<button class="del-btn" data-fname="${fname}">Rename</button>
+								<button class="run-btn" data-fname="${fname}" onclick="runFile('${fname}')">Run</button>
+							</td>
+						</tr>`;
+				}
+				return '';
+			}).join('');
+			filesHtml = `
+					<table id="filesTable" style="width:100%;border-collapse:collapse;">
+						<thead>
+							<tr>
+								<th style="text-align:center;width:32px;"></th>
+								<th style="text-align:right;padding-right:12px;">Size</th>
+								<th style="text-align:left;padding-left:8px;">Name</th>
+								<th style="text-align:center;">Actions</th>
+							</tr>
+						</thead>
+						<tbody>${rows}</tbody>
+					</table>
+				`;
+		}
+
+		panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
+	}
 
 	async function openFile(filename: string) {
 		console.log('Row clicked:', filename);

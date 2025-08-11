@@ -14,14 +14,32 @@
   "contributes": {
     "commands": [
       {
-        "command": "micropython.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "micropython.openFilesPanel",
         "title": "Open MicroPython Files Panel"
+      },
+      {
+        "command": "esp32.upload",
+        "title": "ESP32: Upload"
+      },
+      {
+        "command": "esp32.run",
+        "title": "ESP32: Run"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "esp32.upload",
+          "when": "resourceExtname == .py",
+          "group": "navigation@100"
+        },
+        {
+          "command": "esp32.run",
+          "when": "resourceExtname == .py",
+          "group": "navigation@101"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
