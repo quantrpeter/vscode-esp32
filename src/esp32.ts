@@ -86,3 +86,19 @@ export async function mpremoteCp(localPath: string, filename: string = ""): Prom
         });
     });
 }
+
+/**
+ * Resets the ESP32 using mpremote.
+ * @returns Promise<string> The command output.
+ */
+export async function mpremoteReset(): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        exec('mpremote reset', (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
+    });
+}

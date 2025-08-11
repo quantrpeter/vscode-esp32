@@ -61,6 +61,12 @@
 			box-shadow: 0 2px 8px #0002;
 			text-align: center;
 		}
+
+		#console {
+			background-color: black;
+			color: white;
+			overflow: auto;
+		}
 	</style>
 </head>
 
@@ -69,11 +75,22 @@
 		<button id="uploadBtn">Upload</button>
 		<button id="deleteBtn"">Delete</button>
 		<button id="reloadBtn">Reload</button>
+		<button id="resetBtn">Reset</button>
+		<select id="exampleDropdown" style="margin-left:16px;padding:6px 12px;">
+			<option value="">Select example file...</option>
+			<option value="animation.py">animation.py</option>
+			<option value="scanI2C.py">scanI2C.py</option>
+			<option value="servo.py">servo.py</option>
+			<option value="test.py">test.py</option>
+			<option value="touch.py">touch.py</option>
+		</select>
 	</div>
 	<h2>Files on device</h2>
 	<div id="loader" class="loader">
 	</div>
 	<div id="files"></div>
+	<h2>Console</h2>
+	<div id="console"></div>
 
 	<!-- Add a custom modal for confirmation -->
 	<div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:1000;justify-content:center;align-items:center;">
@@ -95,18 +112,29 @@
 			deleteFiles();
 		};
 		document.getElementById('reloadBtn').onclick = () => {
-			console.log('reload 1');
 			vscode.postMessage({ command: 'reload' });
+		};
+		document.getElementById('resetBtn').onclick = () => {
+			vscode.postMessage({ command: 'reset' });
+		};
+		document.getElementById('exampleDropdown').onchange = function () {
+			const fname = this.value;
+			if (fname) {
+				vscode.postMessage({ command: 'openExampleFile', filename: fname });
+			}
 		};
 
 		// Listen for messages from the extension
 		window.addEventListener('message', event => {
 			const message = event.data;
 			if (message.command === 'showFiles') {
+				console.log('showFiles event');
 				// Hide loader
 				document.getElementById('loader').style.display = 'none';
 				// Show files table
 				document.getElementById('files').innerHTML = message.html;
+				console.log('files', document.getElementById('files'));
+				console.log('message.html', message.html);
 				// Add click handler to table rows
 				const table = document.getElementById('filesTable');
 				if (table) {
@@ -117,34 +145,25 @@
 						}
 					});
 				}
+			} else if (message.command === 'console') {
+				console.log('console', message.text);
+				const consoleDiv = document.getElementById('console');
+				if (consoleDiv) {
+					consoleDiv.innerText += message.text + '\n';
+					consoleDiv.scrollTop = consoleDiv.scrollHeight;
+				}
 			} else if (message.command === 'setImageUri' && message.uri) {
-				// // Remove any existing image/link
-				// const oldLink = document.getElementById('hkps-link');
-				// if (oldLink) oldLink.remove();
-				// // Create new link and image
-				// const link = document.createElement('a');
-				// link.id = 'hkps-link';
-				// link.href = 'https://www.hkprog.org';
-				// link.target = '_blank';
-				// link.rel = 'noopener';
-				// const img = document.createElement('img');
-				// img.id = 'hkps-img';
-				// img.src = message.uri;
-				// img.alt = 'HKPS Eng Big Blue';
-				// img.style.position = 'fixed';
-				// img.style.bottom = '24px';
-				// img.style.right = '24px';
-				// img.style.width = '96px';
-				// img.style.height = 'auto';
-				// img.style.zIndex = '2000';
-				// img.style.boxShadow = '0 2px 8px #0002';
-				// img.style.borderRadius = '8px';
-				// link.appendChild(img);
-				// document.body.appendChild(link);
-
+				console.log('fuck', message.uri);
 				document.body.insertAdjacentHTML('beforeend',
 					`<a id="hkps-link" href="https://www.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
 						<img id="hkps-img" src="${message.uri}" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
+					</a>`
+				);
+			} 
+			else if (message.command === 'setImageUri2' && message.uri) {
+				document.body.insertAdjacentHTML('beforeend',
+					`<a id="hkps-link" href="https://semiblock.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
+						<img id="hkps-img" src="${message.uri}" alt="Semiblock" style="position:fixed;bottom:24px;right:250px;height:80px;" />
 					</a>`
 				);
 			}
@@ -165,7 +184,7 @@
 			showConfirm(
 				`Are you sure you want to delete the following files?\n\n${selectedFiles.join('\n')}`,
 				() => vscode.postMessage({ command: 'deleteFile', files: selectedFiles }),
-				() => {}
+				() => { }
 			);
 		}
 
@@ -183,11 +202,6 @@
 				document.getElementById('confirmModal').style.display = 'none';
 				if (onNo) onNo();
 			};
-		}
-
-		// Add this to your panel.html script section
-		function runFile(fname) {
-			vscode.postMessage({ command: 'runFile', filename: fname });
 		}
 	</script>
 </body>
