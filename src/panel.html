@@ -5,31 +5,40 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>MicroPython Device Files</title>
+	<!-- Materialize CSS -->
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 	<style>
+		html,
 		body {
-			font-family: sans-serif;
-			padding: 16px;
+			height: 100%;
+			margin: 0;
+			padding: 0;
 		}
 
-		.toolbar {
+		body {
 			display: flex;
-			gap: 10px;
-			margin-bottom: 16px;
+			flex-direction: column;
+			min-height: 100vh;
+			padding: 16px;
+			box-sizing: border-box;
 		}
 
-		.toolbar button {
-			padding: 6px 16px;
-			font-size: 1em;
-			cursor: pointer;
+		#main-content {
+			flex: 1 1 auto;
+			display: flex;
+			flex-direction: column;
+		}
+
+		#console {
+			background-color: black;
+			color: white;
+			overflow: auto;
+			padding: 8px;
 			border-radius: 4px;
-			border: 1px solid var(--vscode-button-border, #ccc);
-			background: var(--vscode-button-background, #f3f3f3);
-			color: var(--vscode-button-foreground, inherit);
-			transition: background 0.2s;
-		}
-
-		.toolbar button:hover {
-			background: var(--vscode-button-hoverBackground, #e0e0e0);
+			flex: 1 1 auto;
+			min-height: 120px;
+			max-height: 50vh;
 		}
 
 		.loader {
@@ -39,66 +48,46 @@
 			height: 80px;
 		}
 
-		/* Add a custom modal for confirmation */
-		#confirmModal {
-			display: none;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100vw;
-			height: 100vh;
-			background: rgba(0, 0, 0, 0.3);
-			z-index: 1000;
-			justify-content: center;
-			align-items: center;
-		}
-
-		#confirmModal>div {
-			background: #fff;
-			padding: 24px;
-			border-radius: 8px;
-			min-width: 300px;
-			box-shadow: 0 2px 8px #0002;
-			text-align: center;
-		}
-
-		#console {
-			background-color: black;
-			color: white;
-			overflow: auto;
+		table {
+			font-size: 16px;
 		}
 	</style>
 </head>
 
 <body>
-	<div class="toolbar">
-		<button id="uploadBtn">Upload</button>
-		<button id="deleteBtn"">Delete</button>
-		<button id="reloadBtn">Reload</button>
-		<button id="resetBtn">Reset</button>
-		
-		<select id="exampleDropdown" style="margin-left:16px;padding:6px 12px;">
-			<option value="">Select example file...</option>
-			<option value="animation.py">animation.py</option>
-			<option value="scanI2C.py">scanI2C.py</option>
-			<option value="servo.py">servo.py</option>
-			<option value="test.py">test.py</option>
-			<option value="touch.py">touch.py</option>
-		</select>
+	<div class="row">
+		<div class="col s12">
+			<button id="uploadBtn" class="waves-effect waves-light btn blue">Upload</button>
+			<button id="deleteBtn" class="waves-effect waves-light btn red">Delete</button>
+			<button id="reloadBtn" class="waves-effect waves-light btn grey">Reload</button>
+			<button id="resetBtn" class="waves-effect waves-light btn orange">Reset</button>
+			<div class="input-field inline" style="margin-left:16px;">
+				<select id="exampleDropdown" class="browser-default">
+					<option value="">Select example file...</option>
+					<option value="animation.py">animation.py</option>
+					<option value="scanI2C.py">scanI2C.py</option>
+					<option value="servo.py">servo.py</option>
+					<option value="test.py">test.py</option>
+					<option value="touch.py">touch.py</option>
+				</select>
+			</div>
+		</div>
 	</div>
-	<h2>Files on device</h2>
-	<div id="loader" class="loader">
+	<div id="main-content">
+		<h2>Files on device</h2>
+		<div id="loader" class="loader"></div>
+		<div id="files"></div>
+		<h2>Console</h2>
+		<div id="console"></div>
 	</div>
-	<div id="files"></div>
-	<h2>Console</h2>
-	<div id="console"></div>
-
-	<!-- Add a custom modal for confirmation -->
-	<div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:1000;justify-content:center;align-items:center;">
-		<div style="background:#fff;padding:24px;border-radius:8px;min-width:300px;box-shadow:0 2px 8px #0002;text-align:center;">
-			<div id="confirmMessage" style="margin-bottom:16px;">Are you sure?</div>
-			<button id="confirmYesBtn" style="margin-right:16px;">Yes</button>
-			<button id="confirmNoBtn">No</button>
+	<!-- Materialize Modal for confirmation -->
+	<div id="confirmModal" class="modal">
+		<div class="modal-content">
+			<h5 id="confirmMessage">Are you sure?</h5>
+		</div>
+		<div class="modal-footer">
+			<a href="#!" id="confirmYesBtn" class="modal-close waves-effect waves-green btn-flat">Yes</a>
+			<a href="#!" id="confirmNoBtn" class="modal-close waves-effect waves-red btn-flat">No</a>
 		</div>
 	</div>
 
@@ -129,14 +118,8 @@
 		window.addEventListener('message', event => {
 			const message = event.data;
 			if (message.command === 'showFiles') {
-				console.log('showFiles event');
-				// Hide loader
 				document.getElementById('loader').style.display = 'none';
-				// Show files table
 				document.getElementById('files').innerHTML = message.html;
-				console.log('files', document.getElementById('files'));
-				console.log('message.html', message.html);
-				// Add click handler to table rows
 				const table = document.getElementById('filesTable');
 				if (table) {
 					table.addEventListener('click', function (e) {
@@ -147,14 +130,12 @@
 					});
 				}
 			} else if (message.command === 'console') {
-				console.log('console', message.text);
 				const consoleDiv = document.getElementById('console');
 				if (consoleDiv) {
 					consoleDiv.innerText += message.text + '\n';
 					consoleDiv.scrollTop = consoleDiv.scrollHeight;
 				}
 			} else if (message.command === 'setImageUri' && message.uri) {
-				console.log('fuck', message.uri);
 				document.body.insertAdjacentHTML('beforeend',
 					`<a id="hkps-link" href="https://www.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
 						<img id="hkps-img" src="${message.uri}" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
@@ -171,7 +152,6 @@
 		});
 
 		function tableClicked(filename) {
-			console.log('Table row clicked:', filename);
 			vscode.postMessage({ command: 'openFile', filename });
 		}
 
@@ -184,9 +164,40 @@
 			});
 		}
 
-		// Custom modal for renaming files
+		function deleteFiles() {
+			const selectedFiles = Array.from(document.querySelectorAll('#filesTable input[type="checkbox"]:checked'))
+				.map(checkbox => checkbox.getAttribute('data-fname'));
+			if (selectedFiles.length === 0) {
+				showConfirm('No files selected for deletion.', null, null);
+				return;
+			}
+			showConfirm(
+				`Are you sure you want to delete the following files?\n\n${selectedFiles.join('\n')}`,
+				() => vscode.postMessage({ command: 'deleteFile', files: selectedFiles }),
+				() => { }
+			);
+		}
+
+		// Show Materialize confirmation modal
+		function showConfirm(message, onYes, onNo) {
+			document.getElementById('confirmMessage').textContent = message;
+			const modalElem = document.getElementById('confirmModal');
+			const modalInstance = M.Modal.init(modalElem, {dismissible: false});
+			modalInstance.open();
+			const yesBtn = document.getElementById('confirmYesBtn');
+			const noBtn = document.getElementById('confirmNoBtn');
+			yesBtn.onclick = () => {
+				modalInstance.close();
+				if (onYes) onYes();
+			};
+			noBtn.onclick = () => {
+				modalInstance.close();
+				if (onNo) onNo();
+			};
+		}
+
+		// Custom modal for renaming files (unchanged)
 		function showRenameModal(filename, onRename) {
-			// Create modal if not exists
 			let modal = document.getElementById('renameModal');
 			if (!modal) {
 				modal = document.createElement('div');
@@ -215,7 +226,6 @@
 				modal.style.display = 'flex';
 				modal.querySelector('#renameInput').value = filename;
 			}
-			// Set up button handlers
 			const yesBtn = modal.querySelector('#renameYesBtn');
 			const noBtn = modal.querySelector('#renameNoBtn');
 			yesBtn.onclick = () => {
@@ -228,35 +238,13 @@
 			};
 		}
 
-		function deleteFiles() {
-			const selectedFiles = Array.from(document.querySelectorAll('#filesTable input[type="checkbox"]:checked'))
-				.map(checkbox => checkbox.getAttribute('data-fname'));
-			if (selectedFiles.length === 0) {
-				showConfirm('No files selected for deletion.', null, null);
-				return;
-			}
-			showConfirm(
-				`Are you sure you want to delete the following files?\n\n${selectedFiles.join('\n')}`,
-				() => vscode.postMessage({ command: 'deleteFile', files: selectedFiles }),
-				() => { }
-			);
-		}
-
-		// Show custom confirmation modal
-		function showConfirm(message, onYes, onNo) {
-			document.getElementById('confirmMessage').textContent = message;
-			document.getElementById('confirmModal').style.display = 'flex';
-			const yesBtn = document.getElementById('confirmYesBtn');
-			const noBtn = document.getElementById('confirmNoBtn');
-			yesBtn.onclick = () => {
-				document.getElementById('confirmModal').style.display = 'none';
-				if (onYes) onYes();
-			};
-			noBtn.onclick = () => {
-				document.getElementById('confirmModal').style.display = 'none';
-				if (onNo) onNo();
-			};
-		}
+		// Initialize Materialize select and modal on DOMContentLoaded
+		document.addEventListener('DOMContentLoaded', function() {
+			var elems = document.querySelectorAll('select');
+			M.FormSelect.init(elems);
+			var modals = document.querySelectorAll('.modal');
+			M.Modal.init(modals);
+		});
 	</script>
 </body>
 

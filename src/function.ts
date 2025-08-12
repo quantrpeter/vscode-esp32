@@ -41,18 +41,23 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 				const size = match[1];
 				const fname = match[2];
 				return `<tr data-filename="${fname}" style="cursor:pointer;">
-                        <td style="text-align:center;"><input type="checkbox" data-fname="${fname}" /></td>
-                        <td style="padding-left:8px;" onclick="tableClicked('${fname}')">${getIcon(fname)} ${fname}</td>
-                        <td style="text-align:right;padding-right:12px;" onclick="tableClicked('${fname}')">${size}</td>
-                        <td style="text-align:center;">
-                            <button class="del-btn" data-fname="${fname}" onclick="renameFile('${fname}')">Rename</button>
-                        </td>
-                    </tr>`;
+						<td style="text-align:center;">
+							<label>
+								<input type="checkbox" class="filled-in" data-fname="${fname}" />
+								<span></span>
+							</label>
+						</td>
+						<td style="padding-left:8px;" onclick="tableClicked('${fname}')">${getIcon(fname)} ${fname}</td>
+						<td style="text-align:right;padding-right:12px;" onclick="tableClicked('${fname}')">${size}</td>
+						<td style="text-align:center;">
+							<button class="del-btn waves-effect waves-light btn blue" data-fname="${fname}" onclick="renameFile('${fname}')">Rename</button>
+						</td>
+					</tr>`;
 			}
 			return '';
 		}).join('');
 		filesHtml = `
-                <table id="filesTable" style="width:100%;border-collapse:collapse;">
+                <table id="filesTable" class="striped" style="width:100%;border-collapse:collapse;">
                     <thead>
                         <tr>
                             <th style="text-align:center;width:32px;"></th>
