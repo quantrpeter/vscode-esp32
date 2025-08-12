@@ -8,6 +8,7 @@
 	<!-- Materialize CSS -->
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 	<style>
 		html,
 		body {
@@ -51,6 +52,10 @@
 		table {
 			font-size: 16px;
 		}
+
+		.nav-wrapper{
+			padding-left: 20px;
+		}
 	</style>
 </head>
 
@@ -61,7 +66,11 @@
 			<button id="deleteBtn" class="waves-effect waves-light btn red">Delete</button>
 			<button id="reloadBtn" class="waves-effect waves-light btn grey">Reload</button>
 			<button id="resetBtn" class="waves-effect waves-light btn orange">Reset</button>
-			<div class="input-field inline" style="margin-left:16px;">
+			<button id="createFolderBtn" class="waves-effect waves-light btn green">
+				<i class="material-icons left">create_new_folder</i>Create Folder
+			</button>
+
+			<div class="input-field inline" style="margin: 0px;">
 				<select id="exampleDropdown" class="browser-default">
 					<option value="">Select example file...</option>
 					<option value="animation.py">animation.py</option>
@@ -74,13 +83,31 @@
 		</div>
 	</div>
 	<div id="main-content">
-		<h2>Files on device</h2>
+		<!-- <h4 style="margin: 0px;">Files on device</h4> -->
+		<nav>
+			<div class="nav-wrapper">
+				<div id="breadcrumbDiv" class="col s12">
+				</div>
+			</div>
+		</nav>
 		<div id="loader" class="loader"></div>
 		<div id="files"></div>
-		<h2>Console</h2>
+		<h4>Console</h4>
 		<div id="console"></div>
 	</div>
 	<!-- Materialize Modal for confirmation -->
+	<div id="createFolderModal" class="modal">
+		<div class="modal-content">
+			<h5>Create New Folder</h5>
+			<div class="input-field">
+				<input id="createFolderInput" type="text" placeholder="Folder name">
+			</div>
+		</div>
+		<div class="modal-footer">
+			<a href="#!" id="createFolderYesBtn" class="modal-close waves-effect waves-green btn-flat">Create</a>
+			<a href="#!" id="createFolderNoBtn" class="modal-close waves-effect waves-red btn-flat">Cancel</a>
+		</div>
+	</div>
 	<div id="confirmModal" class="modal">
 		<div class="modal-content">
 			<h5 id="confirmMessage">Are you sure?</h5>
@@ -113,6 +140,21 @@
 				vscode.postMessage({ command: 'openExampleFile', filename: fname });
 			}
 		};
+		document.getElementById('createFolderBtn').onclick = function () {
+			const modalElem = document.getElementById('createFolderModal');
+			const modalInstance = M.Modal.init(modalElem, { dismissible: true });
+			document.getElementById('createFolderInput').value = '';
+			modalInstance.open();
+			document.getElementById('createFolderYesBtn').onclick = function () {
+				const folderName = document.getElementById('createFolderInput').value;
+				if (folderName && folderName.trim()) {
+					vscode.postMessage({ command: 'createFolder', folderName: folderName.trim() });
+				}
+			};
+			document.getElementById('createFolderNoBtn').onclick = function () {
+				modalInstance.close();
+			};
+		};
 
 		// Listen for messages from the extension
 		window.addEventListener('message', event => {
@@ -141,13 +183,44 @@
 						<img id="hkps-img" src="${message.uri}" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
 					</a>`
 				);
-			} 
-			else if (message.command === 'setImageUri2' && message.uri) {
+			} else if (message.command === 'setImageUri2' && message.uri) {
 				document.body.insertAdjacentHTML('beforeend',
 					`<a id="hkps-link" href="https://semiblock.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
 						<img id="hkps-img" src="${message.uri}" alt="Semiblock" style="position:fixed;bottom:24px;right:250px;height:80px;" />
 					</a>`
 				);
+			} else if (message.command === 'renderBreadcrumb') {
+				const breadcrumb = document.querySelector('#breadcrumbDiv');
+				if (breadcrumb) {
+					breadcrumb.innerHTML = '';
+					const parts = message.currentFolder.split('/').filter(Boolean);
+					let pathSoFar = '';
+					// Add root
+					const rootItem = document.createElement('a');
+					rootItem.className = 'breadcrumb';
+					rootItem.textContent = '/';
+					rootItem.style.cursor = 'pointer';
+					rootItem.onclick = () => {
+						vscode.postMessage({ command: 'changeFolder', folder: '/' });
+						vscode.postMessage({ command: 'reload' });
+					};
+					breadcrumb.appendChild(rootItem);
+					// Add each folder part
+					parts.forEach((part, index) => {
+						pathSoFar += '/' + part;
+						const item = document.createElement('a');
+						item.className = 'breadcrumb';
+						item.textContent = part;
+						item.style.cursor = 'pointer';
+						if (index !== parts.length - 1) {
+							item.onclick = () => {
+								vscode.postMessage({ command: 'changeFolder', folder: pathSoFar });
+								vscode.postMessage({ command: 'reload' });
+							};
+						}
+						breadcrumb.appendChild(item);
+					});
+				}
 			}
 		});
 
@@ -182,7 +255,7 @@
 		function showConfirm(message, onYes, onNo) {
 			document.getElementById('confirmMessage').textContent = message;
 			const modalElem = document.getElementById('confirmModal');
-			const modalInstance = M.Modal.init(modalElem, {dismissible: false});
+			const modalInstance = M.Modal.init(modalElem, { dismissible: false });
 			modalInstance.open();
 			const yesBtn = document.getElementById('confirmYesBtn');
 			const noBtn = document.getElementById('confirmNoBtn');
@@ -239,7 +312,7 @@
 		}
 
 		// Initialize Materialize select and modal on DOMContentLoaded
-		document.addEventListener('DOMContentLoaded', function() {
+		document.addEventListener('DOMContentLoaded', function () {
 			var elems = document.querySelectorAll('select');
 			M.FormSelect.init(elems);
 			var modals = document.querySelectorAll('.modal');

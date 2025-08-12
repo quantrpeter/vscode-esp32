@@ -3,10 +3,14 @@
 import * as vscode from 'vscode';
 import { showLoading, showFilesPanel, openFile } from './function';
 
+const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp, mpremoteReset, mpremoteCp2, mpremoteMkdir } = require('./esp32');
+import { currentFolder } from './state';
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	let panel: vscode.WebviewPanel;
+
 
 	// Register ESP32: Run command
 	const runDisposable = vscode.commands.registerCommand('esp32.run', async (fileUri: vscode.Uri) => {
@@ -46,9 +50,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "micropython" is now active!');
 
-	// Register command to open the MicroPython Files panel
-	const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp, mpremoteReset, mpremoteCp2 } = require('./esp32');
-
 	// Register ESP32: Upload command
 	const uploadDisposable = vscode.commands.registerCommand('esp32.upload', async (fileUri: vscode.Uri) => {
 		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
@@ -57,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${fileUri.fsPath} to ESP32...` }, async () => {
 			try {
-				await mpremoteCp(fileUri.fsPath);
+				await mpremoteCp(currentFolder, fileUri.fsPath);
 				showFilesPanel(panel);
 				vscode.window.showInformationMessage(`Uploaded ${fileUri.fsPath} to ESP32.`);
 			} catch (err) {
@@ -101,11 +102,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 		panel.webview.onDidReceiveMessage(async message => {
 			console.log('Message received from webview:', message);
-			if (message.command === 'reload') {
-				await showFilesPanel(panel);
+			if (message.command === 'changeFolder') {
+				currentFolder = message.folder;
+				panel.webview.postMessage({ command: 'renderBreadcrumb', currentFolder: currentFolder });
+			} else if (message.command === 'reload') {
+				console.log('reload', currentFolder);
+				await showFilesPanel(panel, currentFolder);
 			} else if (message.command === 'openFile' && message.filename) {
 				console.log('Table row clicked:', message.filename);
-				openFile(message.filename);
+				openFile(currentFolder, message.filename);
 			} else if (message.command === 'openExampleFile' && message.filename) {
 				// Open file from src/example
 				const path = require('path');
@@ -143,13 +148,13 @@ export function activate(context: vscode.ExtensionContext) {
 				if (Array.isArray(files) && files.length > 0) {
 					for (const file of files) {
 						console.log('Deleting file:', file);
-						await mpremoteRm(file);
+						await mpremoteRm(currentFolder, file);
 					}
 					await showFilesPanel(panel);
 				}
 			} else if (message.command === 'reset') {
 				try {
-					const output = await mpremoteReset();
+					const output = await mpremoteReset(currentFolder);
 					vscode.window.showInformationMessage(`Reset output:\n${output}`);
 				} catch (err) {
 					vscode.window.showErrorMessage(`Error resetting ESP32: ${err}`);
@@ -159,12 +164,24 @@ export function activate(context: vscode.ExtensionContext) {
 				if (oldName && newName) {
 					console.log(`Renaming file from ${oldName} to ${newName}`);
 					try {
-						await mpremoteCp2(oldName, newName);
-						await mpremoteRm(oldName);
+						await mpremoteCp2(currentFolder, oldName, newName);
+						await mpremoteRm(currentFolder, oldName);
 						await showFilesPanel(panel);
 						vscode.window.showInformationMessage(`Renamed ${oldName} to ${newName}`);
 					} catch (err) {
 						vscode.window.showErrorMessage(`Rename failed: ${err}`);
+					}
+				}
+			} else if (message.command === 'createFolder') {
+				const { folderName } = message;
+				if (folderName) {
+					console.log(`Creating folder: ${folderName}`);
+					try {
+						await mpremoteMkdir(currentFolder, folderName);
+						await showFilesPanel(panel);
+						vscode.window.showInformationMessage(`Created folder: ${folderName}`);
+					} catch (err) {
+						vscode.window.showErrorMessage(`Failed to create folder: ${err}`);
 					}
 				}
 			}

@@ -1,3 +1,4 @@
+import { currentFolder } from './state';
 import * as vscode from 'vscode';
 
 const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp, mpremoteReset } = require('./esp32');
@@ -7,17 +8,18 @@ export function showLoading(panel: vscode.WebviewPanel) {
 }
 
 export async function showFilesPanel(panel: vscode.WebviewPanel) {
-	console.log('showFilesPanel');
+	console.log('showFilesPanel', currentFolder);
 	showLoading(panel);
 	let fileList: string = '';
 	try {
-		fileList = await mpremoteLs();
+		fileList = await mpremoteLs(currentFolder);
 	} catch (err) {
 		fileList = 'Error running mpremote: ' + err;
 	}
 	console.log('fileList', fileList);
 
-	function getIcon(filename: string): string {
+	function getIcon(filename: string, size: string): string {
+		if (size === '0') return '📁'; // folder
 		const ext = filename.split('.').pop()?.toLowerCase();
 		switch (ext) {
 			case 'py': return '🐍';
@@ -28,7 +30,7 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 			case 'mp3': return '🎵';
 			case 'json': return '🗂️';
 			case 'bin': return '💾';
-			default: return '📁';
+			default: return '�';
 		}
 	}
 
@@ -40,6 +42,15 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 			if (match) {
 				const size = match[1];
 				const fname = match[2];
+				const isFolder = size === '0';
+				let displayName = fname;
+				if (isFolder && fname.endsWith('/')) {
+					displayName = fname.slice(0, -1);
+				}
+				// If it's a folder, clicking the name updates currentFolder
+				const nameCell = isFolder
+					? `<td style="padding-left:8px; color:blue; text-decoration:underline; cursor:pointer; text-decoration:none; color: black;" onclick="vscode.postMessage({command: 'changeFolder', folder: '${currentFolder}/${fname}'}), vscode.postMessage({command: 'reload'})">${getIcon(fname, size)} ${displayName}</td>`
+					: `<td style="padding-left:8px;" onclick="tableClicked('${fname}')">${getIcon(fname, size)} ${displayName}</td>`;
 				return `<tr data-filename="${fname}" style="cursor:pointer;">
 						<td style="text-align:center;">
 							<label>
@@ -47,30 +58,30 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 								<span></span>
 							</label>
 						</td>
-						<td style="padding-left:8px;" onclick="tableClicked('${fname}')">${getIcon(fname)} ${fname}</td>
+						${nameCell}
 						<td style="text-align:right;padding-right:12px;" onclick="tableClicked('${fname}')">${size}</td>
 						<td style="text-align:center;">
-							<button class="del-btn waves-effect waves-light btn blue" data-fname="${fname}" onclick="renameFile('${fname}')">Rename</button>
+							${!isFolder ? `<button class=\"del-btn waves-effect waves-light btn blue\" data-fname=\"${fname}\" onclick=\"renameFile('${fname}')\">Rename</button>` : ''}
 						</td>
 					</tr>`;
 			}
 			return '';
 		}).join('');
 		filesHtml = `
-                <table id="filesTable" class="striped" style="width:100%;border-collapse:collapse;">
-                    <thead>
-                        <tr>
-                            <th style="text-align:center;width:32px;"></th>
-                            <th style="text-align:left;padding-left:8px;">Name</th>
-                            <th style="text-align:right;padding-right:12px;">Size</th>
-                            <th style="text-align:center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            `;
+				<table id="filesTable" class="striped" style="width:100%;border-collapse:collapse;">
+					<thead>
+						<tr>
+							<th style="text-align:center;width:32px;"></th>
+							<th style="text-align:left;padding-left:8px;">Name</th>
+							<th style="text-align:right;padding-right:12px;">Size</th>
+							<th style="text-align:center;">Actions</th>
+						</tr>
+					</thead>
+					<tbody>${rows}</tbody>
+				</table>
+			`;
 	}
-	console.log('filesHtml', filesHtml);
+	// console.log('filesHtml', filesHtml);
 	panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
 }
 
