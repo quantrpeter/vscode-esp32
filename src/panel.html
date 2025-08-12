@@ -76,6 +76,7 @@
 		<button id="deleteBtn"">Delete</button>
 		<button id="reloadBtn">Reload</button>
 		<button id="resetBtn">Reset</button>
+		
 		<select id="exampleDropdown" style="margin-left:16px;padding:6px 12px;">
 			<option value="">Select example file...</option>
 			<option value="animation.py">animation.py</option>
@@ -172,6 +173,59 @@
 		function tableClicked(filename) {
 			console.log('Table row clicked:', filename);
 			vscode.postMessage({ command: 'openFile', filename });
+		}
+
+		// Show custom rename modal
+		function renameFile(filename) {
+			showRenameModal(filename, (newName) => {
+				if (newName && newName !== filename) {
+					vscode.postMessage({ command: 'renameFile', oldName: filename, newName });
+				}
+			});
+		}
+
+		// Custom modal for renaming files
+		function showRenameModal(filename, onRename) {
+			// Create modal if not exists
+			let modal = document.getElementById('renameModal');
+			if (!modal) {
+				modal = document.createElement('div');
+				modal.id = 'renameModal';
+				modal.style.position = 'fixed';
+				modal.style.top = '0';
+				modal.style.left = '0';
+				modal.style.width = '100vw';
+				modal.style.height = '100vh';
+				modal.style.background = 'rgba(0,0,0,0.3)';
+				modal.style.zIndex = '1001';
+				modal.style.display = 'flex';
+				modal.style.justifyContent = 'center';
+				modal.style.alignItems = 'center';
+				modal.innerHTML = `
+					<div style="background:#fff;padding:24px;border-radius:8px;min-width:300px;box-shadow:0 2px 8px #0002;text-align:center;">
+						<div style="margin-bottom:16px;">Rename <b>${filename}</b> to:</div>
+						<input id="renameInput" type="text" value="${filename}" style="width:80%;padding:8px;margin-bottom:16px;" />
+						<br />
+						<button id="renameYesBtn" style="margin-right:16px;">Rename</button>
+						<button id="renameNoBtn">Cancel</button>
+					</div>
+				`;
+				document.body.appendChild(modal);
+			} else {
+				modal.style.display = 'flex';
+				modal.querySelector('#renameInput').value = filename;
+			}
+			// Set up button handlers
+			const yesBtn = modal.querySelector('#renameYesBtn');
+			const noBtn = modal.querySelector('#renameNoBtn');
+			yesBtn.onclick = () => {
+				const newName = modal.querySelector('#renameInput').value;
+				modal.style.display = 'none';
+				if (onRename) onRename(newName);
+			};
+			noBtn.onclick = () => {
+				modal.style.display = 'none';
+			};
 		}
 
 		function deleteFiles() {

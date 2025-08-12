@@ -87,6 +87,20 @@ export async function mpremoteCp(localPath: string, filename: string = ""): Prom
     });
 }
 
+export async function mpremoteCp2(remoteFromPath: string, remoteToPath: string): Promise<string> {
+    // const path = require('path');
+    // const filename = path.basename(localPath);
+    return await new Promise((resolve, reject) => {
+        exec(`mpremote cp :${remoteFromPath} :${remoteToPath}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
+    });
+}
+
 /**
  * Resets the ESP32 using mpremote.
  * @returns Promise<string> The command output.
