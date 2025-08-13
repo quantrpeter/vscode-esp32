@@ -85,9 +85,9 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 	panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
 }
 
-export async function openFile(filename: string) {
+export async function openFile(currentFolder: string, filename: string) {
 	console.log('Row clicked:', filename);
-	let fileContent = await mpremoteCat(filename);
+	let fileContent = await mpremoteCat(currentFolder, filename);
 	console.log('fileContent:', fileContent);
 	const ext = filename.split('.').pop()?.toLowerCase();
 	let language: string | undefined;

@@ -1,63 +1,65 @@
 {
-  "name": "micropython",
-  "displayName": "MicroPython",
-  "description": "",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.78.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": ["*"],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "micropython.openFilesPanel",
-        "title": "Open MicroPython Files Panel"
-      },
-      {
-        "command": "esp32.upload",
-        "title": "ESP32: Upload"
-      },
-      {
-        "command": "esp32.run",
-        "title": "ESP32: Run"
-      }
-    ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "esp32.upload",
-          "when": "resourceExtname == .py",
-          "group": "navigation@100"
-        },
-        {
-          "command": "esp32.run",
-          "when": "resourceExtname == .py",
-          "group": "navigation@101"
-        }
-      ]
-    }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.78.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "@typescript-eslint/eslint-plugin": "^8.39.0",
-    "@typescript-eslint/parser": "^8.39.0",
-    "eslint": "^9.32.0",
-    "typescript": "^5.9.2",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
-  }
+	"name": "esp32",
+	"displayName": "ESP32",
+	"description": "",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.78.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "esp32.openFilesPanel",
+				"title": "Open MicroPython Files Panel"
+			},
+			{
+				"command": "esp32.upload",
+				"title": "ESP32: Upload"
+			},
+			{
+				"command": "esp32.run",
+				"title": "ESP32: Run"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "esp32.upload",
+					"when": "resourceExtname == .py",
+					"group": "navigation@100"
+				},
+				{
+					"command": "esp32.run",
+					"when": "resourceExtname == .py",
+					"group": "navigation@101"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"lint": "eslint src",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.78.0",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "22.x",
+		"@typescript-eslint/eslint-plugin": "^8.39.0",
+		"@typescript-eslint/parser": "^8.39.0",
+		"eslint": "^9.32.0",
+		"typescript": "^5.9.2",
+		"@vscode/test-cli": "^0.0.11",
+		"@vscode/test-electron": "^2.5.2"
+	}
 }

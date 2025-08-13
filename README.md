@@ -1,6 +1,6 @@
-# micropython README
+# esp32 README
 
-This is the README for your extension "micropython". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "esp32". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

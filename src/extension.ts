@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { showLoading, showFilesPanel, openFile } from './function';
 
 const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp, mpremoteReset, mpremoteCp2, mpremoteMkdir } = require('./esp32');
-import { currentFolder } from './state';
+import { currentFolder, setCurrentFolder } from './state';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "micropython" is now active!');
+	console.log('Congratulations, your extension "esp32" is now active!');
 
 	// Register ESP32: Upload command
 	const uploadDisposable = vscode.commands.registerCommand('esp32.upload', async (fileUri: vscode.Uri) => {
@@ -67,15 +67,15 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 	context.subscriptions.push(uploadDisposable);
-	const panelDisposable = vscode.commands.registerCommand('micropython.openFilesPanel', async () => {
+	const panelDisposable = vscode.commands.registerCommand('esp32.openFilesPanel', async () => {
 		// Always open the panel in a new column to the right of the active editor
 		let targetColumn = vscode.ViewColumn.Beside;
 		if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.viewColumn === vscode.ViewColumn.Three) {
 			targetColumn = vscode.ViewColumn.Three;
 		}
 		panel = vscode.window.createWebviewPanel(
-			'micropythonFiles',
-			'MicroPython Files',
+			'esp32Files',
+			'ESP32 Files',
 			targetColumn,
 			{
 				enableScripts: true,
@@ -103,11 +103,11 @@ export function activate(context: vscode.ExtensionContext) {
 		panel.webview.onDidReceiveMessage(async message => {
 			console.log('Message received from webview:', message);
 			if (message.command === 'changeFolder') {
-				currentFolder = message.folder;
+				setCurrentFolder(message.folder);
 				panel.webview.postMessage({ command: 'renderBreadcrumb', currentFolder: currentFolder });
 			} else if (message.command === 'reload') {
 				console.log('reload', currentFolder);
-				await showFilesPanel(panel, currentFolder);
+				await showFilesPanel(panel);
 			} else if (message.command === 'openFile' && message.filename) {
 				console.log('Table row clicked:', message.filename);
 				openFile(currentFolder, message.filename);
@@ -189,8 +189,8 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(panelDisposable);
 
-	// Automatically open the MicroPython Files panel when the extension is activated
-	vscode.commands.executeCommand('micropython.openFilesPanel');
+	// Automatically open the ESP32 Files panel when the extension is activated
+	vscode.commands.executeCommand('esp32.openFilesPanel');
 
 }
 
