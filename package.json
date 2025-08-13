@@ -37,12 +37,12 @@
 				{
 					"command": "esp32.upload",
 					"when": "resourceExtname == .py",
-					"group": "navigation@100"
+					"group": "navigation@200"
 				},
 				{
 					"command": "esp32.run",
 					"when": "resourceExtname == .py",
-					"group": "navigation@101"
+					"group": "navigation@201"
 				}
 			]
 		}
