@@ -1,4 +1,4 @@
-# esp32 README
+# esp32
 
 Using mpremote to play with ESP32
 
