@@ -3,6 +3,7 @@
 	"displayName": "ESP32",
 	"description": "",
 	"version": "0.0.1",
+	"publisher": "hongkongprogrammingsociety",
 	"engines": {
 		"vscode": "^1.78.0"
 	},
