@@ -10,7 +10,7 @@
 	"categories": [
 		"Other"
 	],
-	"icon": "image/extensionIcon.png",
+	"icon": "src/image/extensionIcon.png",
 	"activationEvents": [
 		"onCommand:esp32.openFilesPanel",
 		"onCommand:esp32.upload",
