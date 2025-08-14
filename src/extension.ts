@@ -89,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 		panel.webview.html = htmlContent;
 
-		const imgPath = require('path').join(context.extensionPath, 'src', 'image', 'hkps eng big blue.png');
+		const imgPath = require('path').join(context.extensionPath, 'src', 'image', 'hkpsLogo.png');
 		const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
 		panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
 

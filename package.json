@@ -10,12 +10,15 @@
 	"categories": [
 		"Other"
 	],
+	"icon": "image/extensionIcon.png",
 	"activationEvents": [
-		"*"
+		"onCommand:esp32.openFilesPanel",
+		"onCommand:esp32.upload",
+		"onCommand:esp32.run"
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/quantrpeter/vscode-esp32.git"
+		"url": "https://github.com/quantrpeter/vscode-esp32"
 	},
 	"main": "./out/extension.js",
 	"contributes": {
