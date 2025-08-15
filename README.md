@@ -17,6 +17,11 @@ Using mpremote to play with ESP32
 | mpremote cp :src.py :dest.py       | Copy file between ESP32 folders              |
 | mpremote reset                     | Reset the ESP32 device                      |
 
+## Commands
+
+### esp32.openFilesPanel
+Show a panel listing MicroPython files for ESP32 projects. This helps you browse, open, and manage files directly from the VS Code interface.
+
 # development
 
 use node v24.2.0
