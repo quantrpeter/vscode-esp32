@@ -25,3 +25,11 @@ Show a panel listing MicroPython files for ESP32 projects. This helps you browse
 # development
 
 use node v24.2.0
+
+## deploy
+
+change version in package.json
+
+vsce package
+
+vsce publish
