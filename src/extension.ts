@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		);
 
-		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'src', 'panel.html'));
+		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'assets', 'panel.html'));
 		const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		const fs = require('fs');
 		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
