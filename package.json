@@ -2,7 +2,7 @@
 	"name": "esp32",
 	"displayName": "ESP32",
 	"description": "",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"publisher": "hongkongprogrammingsociety",
 	"engines": {
 		"vscode": "^1.78.0"
@@ -25,7 +25,7 @@
 		"commands": [
 			{
 				"command": "esp32.openFilesPanel",
-				"title": "Open MicroPython Files Panel"
+				"title": "Open ESP32 Files Panel"
 			},
 			{
 				"command": "esp32.upload",
