@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register ESP32: Run command
 	const runDisposable = vscode.commands.registerCommand('esp32.run', async (fileUri: vscode.Uri) => {
 		console.log('Running file:', fileUri.scheme, fileUri.fsPath);
-		if (fileUri.scheme == 'untitled') {
+		if (fileUri.scheme === 'untitled') {
 			vscode.window.showErrorMessage('You need to save the file first');
 			return;
 		}
@@ -188,9 +188,6 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 	context.subscriptions.push(panelDisposable);
-
-	// Automatically open the ESP32 Files panel when the extension is activated
-	vscode.commands.executeCommand('esp32.openFilesPanel');
 
 }
 
