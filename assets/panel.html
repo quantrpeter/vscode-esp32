@@ -178,15 +178,25 @@
 					consoleDiv.scrollTop = consoleDiv.scrollHeight;
 				}
 			} else if (message.command === 'setImageUri' && message.uri) {
-				document.body.insertAdjacentHTML('beforeend',
+				/*document.body.insertAdjacentHTML('beforeend',
 					`<a id="hkps-link" href="https://www.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
 						<img id="hkps-img" src="${message.uri}" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
 					</a>`
+				);*/
+				document.body.insertAdjacentHTML('beforeend',
+					`<a id="hkps-link" href="https://www.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
+						<img id="hkps-img" src="assets/image/hkpsLogo.png" alt="HKPS Eng Big Blue" style="position:fixed;bottom:24px;right:24px;width:200px;height:auto;" />
+					</a>`
 				);
 			} else if (message.command === 'setImageUri2' && message.uri) {
-				document.body.insertAdjacentHTML('beforeend',
+				/*document.body.insertAdjacentHTML('beforeend',
 					`<a id="hkps-link" href="https://semiblock.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
 						<img id="hkps-img" src="${message.uri}" alt="Semiblock" style="position:fixed;bottom:24px;right:250px;height:80px;" />
+					</a>`
+				);*/
+				document.body.insertAdjacentHTML('beforeend',
+					`<a id="hkps-link" href="https://semiblock.hkprog.org" target="_blank" rel="noopener" style="padding: 10px;">
+						<img id="hkps-img" src="assets/image/semiblock.svg" alt="Semiblock" style="position:fixed;bottom:24px;right:250px;height:80px;" />
 					</a>`
 				);
 			} else if (message.command === 'renderBreadcrumb') {
