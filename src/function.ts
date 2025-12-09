@@ -49,7 +49,7 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 				}
 				// If it's a folder, clicking the name updates currentFolder
 				const nameCell = isFolder
-					? `<td style="padding-left:8px; color:blue; text-decoration:underline; cursor:pointer; text-decoration:none; color: black;" onclick="vscode.postMessage({command: 'changeFolder', folder: '${currentFolder}/${fname}'}), vscode.postMessage({command: 'reload'})">${getIcon(fname, size)} ${displayName}</td>`
+					? `<td class="folder-name" style="padding-left:8px; cursor:pointer;" onclick="vscode.postMessage({command: 'changeFolder', folder: '${currentFolder}/${fname}'}), vscode.postMessage({command: 'reload'})">${getIcon(fname, size)} ${displayName}</td>`
 					: `<td style="padding-left:8px;" onclick="tableClicked('${fname}')">${getIcon(fname, size)} ${displayName}</td>`;
 				return `<tr data-filename="${fname}" style="cursor:pointer;">
 						<td style="text-align:center;">

@@ -10,11 +10,40 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 	<style>
+		/* Color variables for light theme */
+		:root {
+			--bg-primary: #ffffff;
+			--bg-secondary: #f5f5f5;
+			--text-primary: #000000;
+			--text-secondary: #666666;
+			--border-color: #e0e0e0;
+			--console-bg: #1e1e1e;
+			--console-text: #d4d4d4;
+			--nav-bg: #2196f3;
+			--table-odd: #f9f9f9;
+		}
+
+		/* Color variables for dark theme */
+		body.vscode-dark,
+		body.vscode-high-contrast {
+			--bg-primary: #1e1e1e;
+			--bg-secondary: #252526;
+			--text-primary: #cccccc;
+			--text-secondary: #999999;
+			--border-color: #3e3e42;
+			--console-bg: #000000;
+			--console-text: #ffffff;
+			--nav-bg: #1565c0;
+			--table-odd: #2c2c2c;
+		}
+
 		html,
 		body {
 			height: 100%;
 			margin: 0;
 			padding: 0;
+			background-color: var(--bg-primary);
+			color: var(--text-primary);
 		}
 
 		body {
@@ -32,8 +61,8 @@
 		}
 
 		#console {
-			background-color: black;
-			color: white;
+			background-color: var(--console-bg);
+			color: var(--console-text);
 			overflow: auto;
 			padding: 8px;
 			border-radius: 4px;
@@ -51,10 +80,37 @@
 
 		table {
 			font-size: 16px;
+			background-color: var(--bg-primary);
 		}
 
 		.nav-wrapper {
 			padding-left: 20px;
+			background-color: var(--nav-bg);
+		}
+
+		#breadcrumbDiv {
+			background-color: var(--nav-bg);
+		}
+
+		table.striped>tbody>tr:nth-child(odd) {
+			background-color: var(--table-odd);
+		}
+
+		table.striped>tbody>tr {
+			border-bottom: 1px solid var(--border-color);
+		}
+
+		.modal {
+			background-color: var(--bg-primary);
+			color: var(--text-primary);
+		}
+
+		.modal .modal-content {
+			background-color: var(--bg-primary);
+		}
+
+		.folder-name {
+			color: var(--text-primary);
 		}
 	</style>
 </head>
@@ -84,10 +140,9 @@
 	</div>
 	<div id="main-content">
 		<!-- <h4 style="margin: 0px;">Files on device</h4> -->
-		<nav>
+		<nav id="breadcrumbNav" style="display: none;">
 			<div class="nav-wrapper">
-				<div id="breadcrumbDiv" class="col s12">
-				</div>
+				<div id="breadcrumbDiv" class="col s12"></div>
 			</div>
 		</nav>
 		<div id="loader" class="loader"></div>
@@ -226,6 +281,11 @@
 						}
 						breadcrumb.appendChild(item);
 					});
+					if (parts.length > 0) {
+						document.getElementById('breadcrumbNav').style.display = 'block';
+					} else {
+						document.getElementById('breadcrumbNav').style.display = 'none';
+					}
 				}
 			}
 		});
