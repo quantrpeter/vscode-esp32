@@ -83,17 +83,50 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		);
 
-		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'assets', 'panel.html'));
+		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'src', 'panel.html'));
 		const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		const fs = require('fs');
-		let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
-		panel.webview.html = htmlContent;
+		const path = require('path');
+		
+		// Detect if running in development or production
+		const isDevelopment = fs.existsSync(path.join(context.extensionPath, 'src'));
+		const imageFolder = isDevelopment ? 'src' : 'out';
+		
+		function loadHtml() {
+			let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
+			panel.webview.html = htmlContent;
+		}
+		
+		loadHtml();
 
-		const imgPath = require('path').join(context.extensionPath, 'src', 'image', 'hkpsLogo.png');
+		// Watch for HTML file changes during development
+		const watcher = fs.watch(htmlPath.fsPath, (eventType: string) => {
+			if (eventType === 'change' && panel) {
+				console.log('HTML file changed, reloading...');
+				loadHtml();
+				// Re-send image URIs after reload
+				const imgPath = path.join(context.extensionPath, imageFolder, 'image', 'hkpsLogo.png');
+				const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
+				panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
+
+				const imgPath2 = path.join(context.extensionPath, imageFolder, 'image', 'semiblock.svg');
+				const imgUri2 = panel.webview.asWebviewUri(vscode.Uri.file(imgPath2));
+				panel.webview.postMessage({ command: 'setImageUri2', uri: imgUri2.toString() });
+				
+				showFilesPanel(panel);
+			}
+		});
+
+		// Clean up watcher when panel is disposed
+		panel.onDidDispose(() => {
+			watcher.close();
+		});
+
+		const imgPath = path.join(context.extensionPath, imageFolder, 'image', 'hkpsLogo.png');
 		const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
 		panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
 
-		const imgPath2 = require('path').join(context.extensionPath, 'src', 'image', 'semiblock.svg');
+		const imgPath2 = path.join(context.extensionPath, imageFolder, 'image', 'semiblock.svg');
 		const imgUri2 = panel.webview.asWebviewUri(vscode.Uri.file(imgPath2));
 		panel.webview.postMessage({ command: 'setImageUri2', uri: imgUri2.toString() });
 
