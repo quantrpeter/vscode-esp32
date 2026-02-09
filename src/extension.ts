@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
 		
 		// Detect if running in development or production
 		const isDevelopment = fs.existsSync(path.join(context.extensionPath, 'src'));
-		const imageFolder = isDevelopment ? 'src' : 'out';
+		const imageFolder = 'src';//isDevelopment ? 'src' : 'out';
 		
 		function loadHtml() {
 			let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');

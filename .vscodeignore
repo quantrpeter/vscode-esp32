@@ -3,6 +3,7 @@
 src/**
 !src/panel.html
 !src/example/**
+!src/image/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
