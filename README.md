@@ -34,6 +34,8 @@ vsce package
 
 vsce publish
 
+https://marketplace.visualstudio.com/manage/publishers/hongkongprogrammingsociety
+
 # developer
 
 Peter <peter@hkprog.org> , Chairman of Hong Kong Programming Society
