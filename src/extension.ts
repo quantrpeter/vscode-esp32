@@ -83,10 +83,10 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		);
 
-		const htmlPath = vscode.Uri.file(require('path').join(context.extensionPath, 'src', 'panel.html'));
-		const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		const fs = require('fs');
 		const path = require('path');
+		const htmlPath = vscode.Uri.file(path.join(context.extensionPath, 'src', 'panel.html'));
+		const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		
 		// Detect if running in development or production
 		const isDevelopment = fs.existsSync(path.join(context.extensionPath, 'src'));
