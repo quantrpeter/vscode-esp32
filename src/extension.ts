@@ -9,7 +9,7 @@ import { currentFolder, setCurrentFolder } from './state';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	let panel: vscode.WebviewPanel;
+	let panel: vscode.WebviewPanel | undefined;
 
 
 	// Register ESP32: Run command
@@ -27,17 +27,25 @@ export function activate(context: vscode.ExtensionContext) {
 			try {
 				console.log('11 Running file:', fileUri.fsPath);
 				const { spawn } = require('child_process');
-				panel.webview.postMessage({ command: 'console', text: '' }); // Optionally clear console
+				if (panel) {
+					panel.webview.postMessage({ command: 'console', text: '' }); // Optionally clear console
+				}
 				const proc = spawn('mpremote', ['run', fileUri.fsPath]);
 				proc.stdout.on('data', (data: Buffer) => {
 					console.log('>>data', data.toString());
-					panel.webview.postMessage({ command: 'console', text: data.toString() });
+					if (panel) {
+						panel.webview.postMessage({ command: 'console', text: data.toString() });
+					}
 				});
 				proc.stderr.on('data', (data: Buffer) => {
-					panel.webview.postMessage({ command: 'console', text: data.toString() });
+					if (panel) {
+						panel.webview.postMessage({ command: 'console', text: data.toString() });
+					}
 				});
 				proc.on('close', (code: number) => {
-					panel.webview.postMessage({ command: 'console', text: `Process exited with code ${code}` });
+					if (panel) {
+						panel.webview.postMessage({ command: 'console', text: `Process exited with code ${code}`});
+					}
 				});
 			} catch (err) {
 				vscode.window.showErrorMessage(`Run failed: ${err}`);
@@ -59,7 +67,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${fileUri.fsPath} to ESP32...` }, async () => {
 			try {
 				await mpremoteCp(currentFolder, fileUri.fsPath);
-				showFilesPanel(panel);
+				if (panel) {
+					showFilesPanel(panel);
+				}
 				vscode.window.showInformationMessage(`Uploaded ${fileUri.fsPath} to ESP32.`);
 			} catch (err) {
 				vscode.window.showErrorMessage(`Upload failed: ${err}`);
@@ -120,6 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Clean up watcher when panel is disposed
 		panel.onDidDispose(() => {
 			watcher.close();
+			panel = undefined;
 		});
 
 		const imgPath = path.join(context.extensionPath, imageFolder, 'image', 'hkpsLogo.png');

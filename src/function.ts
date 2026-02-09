@@ -3,11 +3,21 @@ import * as vscode from 'vscode';
 
 const { mpremoteCat, mpremoteLs, mpremoteRm, mpremoteRun, mpremoteCp, mpremoteReset } = require('./esp32');
 
-export function showLoading(panel: vscode.WebviewPanel) {
-	panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+export function showLoading(panel: vscode.WebviewPanel | undefined) {
+	if (!panel) {
+		return;
+	}
+	try {
+		panel.webview.postMessage({ command: 'showFiles', html: '<div class="loader"><div>Loading...</div><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="20" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/><circle cx="24" cy="24" r="20" stroke="#0078d4" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></circle></svg></div>' });
+	} catch (err) {
+		console.log('Panel is disposed, cannot show loading');
+	}
 }
 
-export async function showFilesPanel(panel: vscode.WebviewPanel) {
+export async function showFilesPanel(panel: vscode.WebviewPanel | undefined) {
+	if (!panel) {
+		return;
+	}
 	console.log('showFilesPanel', currentFolder);
 	showLoading(panel);
 	let fileList: string = '';
@@ -82,7 +92,11 @@ export async function showFilesPanel(panel: vscode.WebviewPanel) {
 			`;
 	}
 	// console.log('filesHtml', filesHtml);
-	panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
+	try {
+		panel.webview.postMessage({ command: 'showFiles', html: filesHtml || '<p>No files found or error occurred.</p>' });
+	} catch (err) {
+		console.log('Panel is disposed, cannot show files');
+	}
 }
 
 export async function openFile(currentFolder: string, filename: string) {
