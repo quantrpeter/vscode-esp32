@@ -104,7 +104,9 @@ export function activate(context: vscode.ExtensionContext) {
 		
 		function loadHtml() {
 			let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
-			panel.webview.html = htmlContent;
+			if (panel){
+				panel.webview.html = htmlContent;
+			}
 		}
 		
 		loadHtml();
@@ -148,7 +150,9 @@ export function activate(context: vscode.ExtensionContext) {
 			console.log('Message received from webview:', message);
 			if (message.command === 'changeFolder') {
 				setCurrentFolder(message.folder);
-				panel.webview.postMessage({ command: 'renderBreadcrumb', currentFolder: currentFolder });
+				if (panel){
+					panel.webview.postMessage({ command: 'renderBreadcrumb', currentFolder: currentFolder });
+				}
 			} else if (message.command === 'reload') {
 				console.log('reload', currentFolder);
 				await showFilesPanel(panel);
