@@ -96,10 +96,10 @@ export function activate(context: vscode.ExtensionContext) {
 		const fs = require('fs');
 		const path = require('path');
 		const htmlPath = vscode.Uri.file(path.join(context.extensionPath, 'src', 'panel.html'));
-		const htmlUri = panel.webview.asWebviewUri(htmlPath);
+		// const htmlUri = panel.webview.asWebviewUri(htmlPath);
 		
 		// Detect if running in development or production
-		const isDevelopment = fs.existsSync(path.join(context.extensionPath, 'src'));
+		// const isDevelopment = fs.existsSync(path.join(context.extensionPath, 'src'));
 		const imageFolder = 'src';//isDevelopment ? 'src' : 'out';
 		
 		function loadHtml() {
@@ -114,21 +114,26 @@ export function activate(context: vscode.ExtensionContext) {
 		// Watch for HTML file changes during development
 		const watcher = fs.watch(htmlPath.fsPath, (eventType: string) => {
 			if (eventType === 'change' && panel) {
-				console.log('HTML file changed, reloading...');
-				loadHtml();
-				// Re-send image URIs after reload
-				const imgPath = path.join(context.extensionPath, imageFolder, 'image', 'hkpsLogo.png');
-				const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
-				panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
+				try{
+					console.log('HTML file changed, reloading...');
+					loadHtml();
+					// Re-send image URIs after reload
+					const imgPath = path.join(context.extensionPath, imageFolder, 'image', 'hkpsLogo.png');
+					const imgUri = panel.webview.asWebviewUri(vscode.Uri.file(imgPath));
+					panel.webview.postMessage({ command: 'setImageUri', uri: imgUri.toString() });
 
-				const imgPath2 = path.join(context.extensionPath, imageFolder, 'image', 'semiblock.svg');
-				const imgUri2 = panel.webview.asWebviewUri(vscode.Uri.file(imgPath2));
-				panel.webview.postMessage({ command: 'setImageUri2', uri: imgUri2.toString() });
-				
-				showFilesPanel(panel);
+					const imgPath2 = path.join(context.extensionPath, imageFolder, 'image', 'semiblock.svg');
+					const imgUri2 = panel.webview.asWebviewUri(vscode.Uri.file(imgPath2));
+					panel.webview.postMessage({ command: 'setImageUri2', uri: imgUri2.toString() });
+					
+					showFilesPanel(panel);
+				}catch(err){
+					console.error('Error reloading HTML file:', err);
+				}
 			}
 		});
 
+		try{
 		// Clean up watcher when panel is disposed
 		panel.onDidDispose(() => {
 			watcher.close();
@@ -165,75 +170,78 @@ export function activate(context: vscode.ExtensionContext) {
 				const fs = require('fs');
 				const examplePath = path.join(context.extensionPath, 'src', 'example', message.filename);
 				let fileContent = '';
-				try {
-					fileContent = fs.readFileSync(examplePath, 'utf8');
-				} catch (err) {
-					vscode.window.showErrorMessage(`Error reading example file: ${err}`);
-					return;
-				}
-				// Determine language mode from extension
-				const ext = message.filename.split('.').pop()?.toLowerCase();
-				let language;
-				switch (ext) {
-					case 'py': language = 'python'; break;
-					case 'txt': language = 'plaintext'; break;
-					case 'json': language = 'json'; break;
-					default: language = undefined;
-				}
-				const uri = vscode.Uri.parse(`untitled:${message.filename}`);
-				vscode.workspace.openTextDocument(uri).then(doc => {
-					vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One }).then(editor => {
-						editor.edit(editBuilder => {
-							editBuilder.insert(new vscode.Position(0, 0), fileContent);
+					try {
+						fileContent = fs.readFileSync(examplePath, 'utf8');
+					} catch (err) {
+						vscode.window.showErrorMessage(`Error reading example file: ${err}`);
+						return;
+					}
+					// Determine language mode from extension
+					const ext = message.filename.split('.').pop()?.toLowerCase();
+					let language;
+					switch (ext) {
+						case 'py': language = 'python'; break;
+						case 'txt': language = 'plaintext'; break;
+						case 'json': language = 'json'; break;
+						default: language = undefined;
+					}
+					const uri = vscode.Uri.parse(`untitled:${message.filename}`);
+					vscode.workspace.openTextDocument(uri).then(doc => {
+						vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One }).then(editor => {
+							editor.edit(editBuilder => {
+								editBuilder.insert(new vscode.Position(0, 0), fileContent);
+							});
+							if (language) {
+								vscode.languages.setTextDocumentLanguage(doc, language);
+							}
 						});
-						if (language) {
-							vscode.languages.setTextDocumentLanguage(doc, language);
-						}
 					});
-				});
-			} else if (message.command === 'deleteFile') {
-				const { files } = message;
-				if (Array.isArray(files) && files.length > 0) {
-					for (const file of files) {
-						console.log('Deleting file:', file);
-						await mpremoteRm(currentFolder, file);
-					}
-					await showFilesPanel(panel);
-				}
-			} else if (message.command === 'reset') {
-				try {
-					const output = await mpremoteReset(currentFolder);
-					vscode.window.showInformationMessage(`Reset output:\n${output}`);
-				} catch (err) {
-					vscode.window.showErrorMessage(`Error resetting ESP32: ${err}`);
-				}
-			} else if (message.command === 'renameFile') {
-				const { oldName, newName } = message;
-				if (oldName && newName) {
-					console.log(`Renaming file from ${oldName} to ${newName}`);
-					try {
-						await mpremoteCp2(currentFolder, oldName, newName);
-						await mpremoteRm(currentFolder, oldName);
+				} else if (message.command === 'deleteFile') {
+					const { files } = message;
+					if (Array.isArray(files) && files.length > 0) {
+						for (const file of files) {
+							console.log('Deleting file:', file);
+							await mpremoteRm(currentFolder, file);
+						}
 						await showFilesPanel(panel);
-						vscode.window.showInformationMessage(`Renamed ${oldName} to ${newName}`);
-					} catch (err) {
-						vscode.window.showErrorMessage(`Rename failed: ${err}`);
 					}
-				}
-			} else if (message.command === 'createFolder') {
-				const { folderName } = message;
-				if (folderName) {
-					console.log(`Creating folder: ${folderName}`);
+				} else if (message.command === 'reset') {
 					try {
-						await mpremoteMkdir(currentFolder, folderName);
-						await showFilesPanel(panel);
-						vscode.window.showInformationMessage(`Created folder: ${folderName}`);
+						const output = await mpremoteReset(currentFolder);
+						vscode.window.showInformationMessage(`Reset output:\n${output}`);
 					} catch (err) {
-						vscode.window.showErrorMessage(`Failed to create folder: ${err}`);
+						vscode.window.showErrorMessage(`Error resetting ESP32: ${err}`);
+					}
+				} else if (message.command === 'renameFile') {
+					const { oldName, newName } = message;
+					if (oldName && newName) {
+						console.log(`Renaming file from ${oldName} to ${newName}`);
+						try {
+							await mpremoteCp2(currentFolder, oldName, newName);
+							await mpremoteRm(currentFolder, oldName);
+							await showFilesPanel(panel);
+							vscode.window.showInformationMessage(`Renamed ${oldName} to ${newName}`);
+						} catch (err) {
+							vscode.window.showErrorMessage(`Rename failed: ${err}`);
+						}
+					}
+				} else if (message.command === 'createFolder') {
+					const { folderName } = message;
+					if (folderName) {
+						console.log(`Creating folder: ${folderName}`);
+						try {
+							await mpremoteMkdir(currentFolder, folderName);
+							await showFilesPanel(panel);
+							vscode.window.showInformationMessage(`Created folder: ${folderName}`);
+						} catch (err) {
+							vscode.window.showErrorMessage(`Failed to create folder: ${err}`);
+						}
 					}
 				}
-			}
-		});
+			});
+		}catch(err) {
+			console.error(`Error initializing files panel: ${err}`);
+		}
 	});
 	context.subscriptions.push(panelDisposable);
 

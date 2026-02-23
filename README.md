@@ -26,6 +26,8 @@ Show a panel listing MicroPython files for ESP32 projects. This helps you browse
 
 use node v24.2.0
 
+open this project in vscode then press F5
+
 ## deploy
 
 change version in package.json
