@@ -77,6 +77,36 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 	context.subscriptions.push(uploadDisposable);
+
+	// Register ESP32: Delete command
+	const deleteDisposable = vscode.commands.registerCommand('esp32.delete', async (fileUri: vscode.Uri) => {
+		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
+			vscode.window.showErrorMessage('ESP32: Delete can only be used on .py files.');
+			return;
+		}
+		const fileName = require('path').basename(fileUri.fsPath);
+		const confirm = await vscode.window.showWarningMessage(
+			`Delete "${fileName}" from ESP32?`,
+			{ modal: true },
+			'Delete'
+		);
+		if (confirm !== 'Delete') {
+			return;
+		}
+		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Deleting ${fileName} from ESP32...` }, async () => {
+			try {
+				await mpremoteRm(currentFolder, fileName);
+				if (panel) {
+					showFilesPanel(panel);
+				}
+				vscode.window.showInformationMessage(`Deleted ${fileName} from ESP32.`);
+			} catch (err) {
+				vscode.window.showErrorMessage(`Delete failed: ${err}`);
+			}
+		});
+	});
+	context.subscriptions.push(deleteDisposable);
+
 	const panelDisposable = vscode.commands.registerCommand('esp32.openFilesPanel', async () => {
 		// Always open the panel in a new column to the right of the active editor
 		let targetColumn = vscode.ViewColumn.Beside;
