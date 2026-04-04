@@ -19,8 +19,8 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showErrorMessage('You need to save the file first');
 			return;
 		}
-		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
-			vscode.window.showErrorMessage('ESP32: Run can only be used on .py files.');
+		if (!fileUri || fileUri.scheme !== 'file') {
+			vscode.window.showErrorMessage('ESP32: Run requires a saved file.');
 			return;
 		}
 		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Running ${fileUri.fsPath} on ESP32...` }, async () => {
@@ -60,8 +60,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register ESP32: Upload command
 	const uploadDisposable = vscode.commands.registerCommand('esp32.upload', async (fileUri: vscode.Uri) => {
-		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
-			vscode.window.showErrorMessage('ESP32: Upload can only be used on .py files.');
+		if (!fileUri || fileUri.scheme !== 'file') {
+			vscode.window.showErrorMessage('ESP32: Upload requires a saved file.');
 			return;
 		}
 		vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${fileUri.fsPath} to ESP32...` }, async () => {
@@ -80,8 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register ESP32: Delete command
 	const deleteDisposable = vscode.commands.registerCommand('esp32.delete', async (fileUri: vscode.Uri) => {
-		if (!fileUri || fileUri.scheme !== 'file' || !fileUri.fsPath.endsWith('.py')) {
-			vscode.window.showErrorMessage('ESP32: Delete can only be used on .py files.');
+		if (!fileUri || fileUri.scheme !== 'file') {
+			vscode.window.showErrorMessage('ESP32: Delete requires a saved file.');
 			return;
 		}
 		const fileName = require('path').basename(fileUri.fsPath);

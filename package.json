@@ -45,34 +45,28 @@
 			"editor/context": [
 				{
 					"command": "esp32.upload",
-					"when": "resourceExtname == .py",
 					"group": "navigation@200"
 				},
 				{
 					"command": "esp32.run",
-					"when": "resourceExtname == .py",
 					"group": "navigation@201"
 				},
 				{
 					"command": "esp32.delete",
-					"when": "resourceExtname == .py",
 					"group": "navigation@202"
 				}
 			],
 			"explorer/context": [
 				{
 					"command": "esp32.upload",
-					"when": "resourceExtname == .py",
 					"group": "navigation@200"
 				},
 				{
 					"command": "esp32.run",
-					"when": "resourceExtname == .py",
 					"group": "navigation@201"
 				},
 				{
 					"command": "esp32.delete",
-					"when": "resourceExtname == .py",
 					"group": "navigation@202"
 				}
 			]
